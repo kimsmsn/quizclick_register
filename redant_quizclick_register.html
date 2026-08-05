@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- 검색엔진 색인 방지: 사내 전용 도구라 구글 검색에 노출되면 안 됩니다 -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="레드앤트 전용 QuizClick 캠페인 등록 도구">
+<meta property="og:title" content="QuizClick 캠페인 등록 도구 · 레드앤트">
+<meta property="og:description" content="레드앤트 전용 캠페인 등록 도구입니다.">
+<meta property="og:type" content="website">
+<title>QuizClick 캠페인 등록 도구 · 레드앤트</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  .fillhandle{position:absolute;width:8px;height:8px;background:var(--accent);border:1px solid #fff;box-shadow:0 0 0 1px var(--accent);cursor:crosshair;bottom:-4px;right:-4px;z-index:3;}
+  table.grid td{position:relative;}
+  table.grid td.selected{outline:2px solid var(--accent);outline-offset:-2px;background:#fff3ea;}
+  table.grid td.selected input, table.grid td.selected select{background:#fff3ea;}
+  :root{
+    --navy:#1b2a4a; --navy-2:#24365e; --accent:#e8622c; --accent-2:#c94f1f;
+    --bg:#f5f6f8; --card:#ffffff; --line:#e2e5ea; --text:#1c2230; --muted:#6b7280;
+    --req:#c0392b; --req-bg:#fdecea; --opt:#7a8699;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:var(--bg);color:var(--text);}
+  header{background:var(--navy);color:#fff;padding:22px 32px;}
+  header h1{margin:0;font-size:20px;letter-spacing:.2px;}
+  header p{margin:6px 0 0;font-size:13px;color:#b9c3da;}
+  .wrap{max-width:1320px;margin:0 auto;padding:24px 24px 60px;}
+
+  .layout{display:grid;grid-template-columns:1.5fr 1fr;gap:20px;align-items:start;}
+  @media (max-width:1000px){.layout{grid-template-columns:1fr;}}
+  .bottomrow{display:grid;grid-template-columns:repeat(auto-fit, minmax(340px, 1fr));gap:20px;align-items:start;margin-top:4px;}
+  @media (max-width:900px){.bottomrow{grid-template-columns:1fr;}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:18px;}
+  .card h2{font-size:15px;margin:0 0 14px;padding-bottom:10px;border-bottom:2px solid var(--navy);color:var(--navy-2);}
+  .tabs{display:flex;gap:8px;}
+  .tab{flex:1;padding:10px 8px;text-align:center;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;font-size:13px;color:var(--muted);font-weight:600;}
+  .tab.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .field{margin-bottom:12px;}
+  .field label{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;margin-bottom:5px;}
+  .badge{font-size:10px;padding:1px 6px;border-radius:10px;color:#fff;}
+  .badge.req{background:var(--req);}
+  .badge.opt{background:var(--opt);}
+  input[type=text],input[type=number],select,textarea{
+    width:100%;padding:8px 10px;border:1px solid #cfd4dc;border-radius:6px;font-size:13px;font-family:inherit;background:#fff;
+  }
+  .field.req input, .field.req select{background:var(--req-bg);border-color:#eab7ac;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .hint{font-size:11px;color:var(--muted);margin-top:3px;}
+  .btn{appearance:none;border:none;border-radius:7px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;}
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-primary:hover{background:var(--accent-2);}
+  .btn-outline{background:#fff;border:1px solid var(--navy);color:var(--navy);}
+  .btn-outline:hover{background:#eef1f7;}
+  .btn-danger{background:#fff;border:1px solid #c0392b;color:#c0392b;padding:4px 8px;font-size:11px;}
+  .preview{white-space:pre-wrap;font-size:12.5px;background:#fbfaf7;border:1px dashed #d8cdb8;border-radius:8px;padding:12px;line-height:1.5;color:#3b3120;min-height:60px;}
+  .preview-label{font-size:11.5px;font-weight:700;color:var(--muted);margin:10px 0 5px;text-transform:uppercase;letter-spacing:.3px;}
+  .list-item{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12.5px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;background:#fafbfc;}
+  .list-item .meta{color:var(--muted);font-size:11px;margin-top:2px;}
+  .type-pill{display:inline-block;font-size:10px;background:var(--navy);color:#fff;padding:1px 7px;border-radius:10px;margin-right:6px;}
+  #jsonOut{width:100%;height:220px;font-family:Consolas,Menlo,monospace;font-size:11.5px;}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+  .warn{background:#fff7e6;border:1px solid #f0c36d;color:#7a5b00;font-size:11.5px;padding:10px 12px;border-radius:8px;margin-top:10px;}
+  .empty{color:var(--muted);font-size:12.5px;padding:10px 0;}
+  .apiresult{font-size:12px;margin-top:10px;padding:10px;border-radius:8px;white-space:pre-wrap;}
+  .apiresult.ok{background:#eafaf0;color:#166534;}
+  .apiresult.err{background:#fdecea;color:#991b1b;}
+
+  /* 그리드(엑셀형태) */
+  .gridwrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;}
+  table.grid{border-collapse:collapse;font-size:12px;min-width:100%;}
+  table.grid th, table.grid td{border:1px solid #e4e7ec;padding:0;}
+  table.grid th{background:var(--navy);color:#fff;font-size:11px;padding:8px 6px;white-space:nowrap;position:sticky;top:0;}
+  table.grid th .badge{margin-left:4px;}
+  table.grid td input{border:none;border-radius:0;padding:6px 8px;font-size:12px;min-width:110px;background:#fff;}
+  table.grid td input:focus{outline:2px solid var(--accent);outline-offset:-2px;position:relative;z-index:1;}
+  table.grid tbody tr:nth-child(even) td input{background:#fafbfc;}
+  table.grid td.rownum{background:#f0f1f4;color:var(--muted);text-align:center;font-weight:700;padding:0 8px;min-width:30px;}
+  table.grid td.delcell{text-align:center;background:#fafbfc;}
+  .lockscreen{position:fixed;inset:0;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9999;text-align:center;padding:20px;}
+  .lockscreen h2{font-size:20px;margin-bottom:6px;}
+  .lockscreen p{font-size:13px;color:#b9c3da;margin-bottom:18px;}
+  .lockscreen input{width:220px;padding:10px 12px;border-radius:7px;border:none;text-align:center;font-size:14px;}
+  .lockscreen button{margin-top:12px;padding:10px 20px;border:none;border-radius:7px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;}
+  .lockscreen .err{color:#ffb4a8;font-size:12px;margin-top:10px;min-height:16px;}
+  .versiontag{font-size:11px;color:#8fa0c2;margin-top:8px;}
+</style>
+</head>
+<body>
+
+<div class="lockscreen" id="lockScreen">
+  <h2>QuizClick 캠페인 등록 도구</h2>
+  <p>레드앤트 파트너 키를 입력해주세요.</p>
+  <input type="text" id="lockPw" placeholder="파트너 키 입력" autocomplete="off">
+  <button id="lockBtn">입장하기</button>
+  <div class="err" id="lockErr"></div>
+  <div class="versiontag">레드앤트 전용 v1.1 · 2026-08-05</div>
+</div>
+
+<div id="appRoot" style="display:none;">
+<header>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+    <div>
+      <h1>QuizClick 캠페인 등록 도구 <span style="font-size:11px;font-weight:400;color:#b9c3da;">레드앤트 전용 · 2026-08-05</span></h1>
+      <p>원본 데이터만 입력하면 문제·정답·캠페인명이 자동으로 만들어집니다.</p>
+    </div>
+    <button class="btn btn-outline" id="btnLogoutPartner" style="background:#fff;margin-top:2px;">로그아웃</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2 style="border:none;margin:0;padding:0;">캠페인 타입</h2>
+    <div class="tabs" id="typeTabs" style="margin-top:12px;"></div>
+  </div>
+
+  <div class="tabs" style="margin-bottom:18px;">
+    <div class="tab active" id="modeIndividual">개별 등록</div>
+    <div class="tab" id="modeBulk">일괄 등록 (엑셀형태)</div>
+  </div>
+
+  <div class="layout">
+    <!-- 왼쪽 -->
+    <div>
+
+      <!-- 개별 등록 모드 -->
+      <div id="individualMode">
+        <div class="card">
+          <h2>공통 정보</h2>
+          <div class="row3">
+            <div class="field req"><label>캠페인 코드 <span class="badge req">필수</span></label>
+              <input type="text" id="f_code" placeholder="redwhale_0001"></div>
+            <div class="field req"><label>시작일 <span class="badge req">필수</span></label>
+              <input type="text" id="f_startAt" placeholder="2026-08-06"></div>
+            <div class="field req"><label>종료일 <span class="badge req">필수</span></label>
+              <input type="text" id="f_endAt" placeholder="2026-08-13"></div>
+          </div>
+          <div class="row3">
+            <div class="field req"><label>전체 참여 한도 <span class="badge req">필수</span></label>
+              <input type="number" id="f_totalQuota" placeholder="350"></div>
+            <div class="field req"><label>일 참여 한도 <span class="badge req">필수</span></label>
+              <input type="number" id="f_dailyQuota" placeholder="50"></div>
+            <div class="field"><label>공급 단가 <span class="badge opt">선택</span></label>
+              <input type="number" id="f_supplyPrice" placeholder="100"></div>
+          </div>
+          <div class="field"><label>광고예산 <span class="badge opt">선택</span></label>
+            <input type="number" id="f_adBudget" placeholder="35000"></div>
+          <div class="field"><label>힌트랜딩 URL <span class="badge opt">선택</span></label>
+            <input type="text" id="f_hintUrlChoice" list="hintUrlOptions" placeholder="목록에서 고르거나 원하는 URL을 직접 입력하세요">
+          </div>
+          <datalist id="hintUrlOptions">
+            <option value="https://cdn.quizclick.io/quiz/public/support/v1/bridgenapp.html">네이버 앱</option>
+            <option value="https://cdn.quizclick.io/quiz/public/support/v1/bridgemap.html">네이버지도 앱</option>
+            <option value="https://link.naver.com/bridge?url=https%3A%2F%2Fm.naver.com%2F&dst=naversearchapp%3A%2F%2Finappbrowser%3Furl%3Dhttps%253A%252F%252Fm%252Enaver%252Ecom%252F%26version%3D10%26sourceReferer%3Dshare">네이버 링크 (link로 시작)</option>
+          </datalist>
+          <h2>타입별 원본 데이터</h2>
+          <div id="typeFields"></div>
+          <div class="actions">
+            <button class="btn btn-primary" id="btnAdd">+ 캠페인 목록에 추가</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 일괄 등록 모드 (엑셀형태 그리드) -->
+      <div id="bulkMode" style="display:none;">
+        <div class="card">
+          <h2>엑셀처럼 입력하기</h2>
+          <div class="hint" style="margin-bottom:10px;">
+            셀을 클릭해서 직접 입력하거나, <b>진짜 엑셀에서 범위를 복사(Ctrl+C)한 뒤 첫 칸을 클릭하고 붙여넣기(Ctrl+V)</b>하면
+            여러 행·열이 한 번에 채워집니다. 힌트랜딩 URL 칸에는 원하는 URL을 자유롭게 입력하세요.
+          </div>
+          <div class="field" style="max-width:280px;"><label>광고주 ID <span class="badge opt">레드앤트 고정</span></label>
+            <input type="text" id="f_advertiserId" value="redwhale" readonly style="background:#f0f1f4;color:var(--muted);"></div>
+          <div class="gridwrap"><table class="grid" id="gridTable"></table></div>
+          <div class="actions">
+            <button class="btn btn-outline" id="btnAddRows">+ 행 10개 추가</button>
+            <button class="btn btn-outline" id="btnClearGrid">그리드 초기화</button>
+            <button class="btn btn-primary" id="btnDownloadLegacyXlsx">'일괄등록' 원본양식으로 다운로드</button>
+            <button class="btn btn-outline" id="btnDownloadXlsx">원본데이터 백업 다운로드</button>
+            <label class="btn btn-outline" style="margin:0;">
+              백업 파일 업로드<input type="file" id="fileUploadXlsx" accept=".xlsx,.xls,.csv" style="display:none;">
+            </label>
+            <button class="btn btn-primary" id="btnGridSubmit">이 데이터로 캠페인 일괄 생성 →</button>
+          </div>
+          <div class="hint" style="margin-top:8px;">
+            '일괄등록 원본양식' 다운로드는 기존에 쓰시던 파일과 같은 컬럼 구성(#, 광고주ID, 캠페인타입, 캠페인명, 시작일시, 종료일시,
+            전체참여인원, 일최대참여인원, 광고단가, 광고예산, 힌트랜딩URL, 플레이스/쇼핑URL, 키워드, 문제, 정답
+            {NSN4는 이미지 포함})으로 만들어집니다. 문제·정답·캠페인명은 자동 계산된 값이 그대로 채워집니다.
+            단, 이 파일은 원본 데이터(플레이스명·명소·상품정보 등)가 들어있지 않아 다시 업로드해서 계속 편집하는 용도로는 쓸 수 없습니다.
+            계속 편집하시려면 "원본데이터 백업 다운로드"를 이용해주세요.
+          </div>
+          <div class="hint" style="margin-top:8px;">
+            팁: 셀 하나를 클릭하면 오른쪽 아래에 작은 사각형(채우기 핸들)이 나타납니다. 그 핸들을 아래로 드래그하면
+            엑셀처럼 같은 값이 여러 행에 자동으로 채워집니다.
+          </div>
+          <div id="gridResult"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 오른쪽 -->
+    <div>
+      <div class="card" id="previewCard">
+        <h2>실시간 미리보기</h2>
+        <div class="preview-label">캠페인명 (자동)</div>
+        <div class="preview" id="prevTitle">-</div>
+        <div class="preview-label">문제 (quiz.question, 자동)</div>
+        <div class="preview" id="prevQuestion">-</div>
+        <div class="preview-label">정답 (quiz.answer, 자동)</div>
+        <div class="preview" id="prevAnswer">-</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottomrow">
+    <div class="card">
+      <h2>등록 대기 목록 (<span id="listCount">0</span>건)</h2>
+      <div id="campaignList"><div class="empty">아직 추가된 캠페인이 없습니다.</div></div>
+      <div class="actions">
+        <button class="btn btn-outline" id="btnGenJson">전체 JSON 생성</button>
+      </div>
+      <textarea id="jsonOut" style="display:none;margin-top:10px;" readonly></textarea>
+      <div class="actions" id="jsonActions" style="display:none;">
+        <button class="btn btn-outline" id="btnCopy">JSON 복사</button>
+        <button class="btn btn-outline" id="btnDownload">JSON 파일 다운로드</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>QuizClick API로 바로 등록 (선택)</h2>
+      <div class="field"><label>환경</label>
+        <select id="f_env">
+          <option value="https://dev-ppapi.quizclick.io">개발 (dev-ppapi)</option>
+          <option value="https://ppapi.quizclick.io">운영 (ppapi)</option>
+        </select>
+      </div>
+      <div class="row2">
+        <div class="field"><label>partner</label><input type="text" id="f_partner" placeholder="redwhale"></div>
+        <div class="field"><label>API KEY (X-Client-ID)</label><input type="text" id="f_apikey" placeholder="발급받은 API KEY"></div>
+      </div>
+      <div class="warn">⚠️ API KEY는 브라우저에서 그대로 서버로 전송되며 이 페이지에 저장되지 않습니다(새로고침 시 사라짐). 신뢰할 수 있는 PC에서만 사용하세요. CORS로 차단되면 JSON을 다운로드해 기존 curl/스크립트 방식을 이용해주세요.</div>
+      <div class="actions">
+        <button class="btn btn-primary" id="btnCallApi">registerCampaign 호출</button>
+      </div>
+      <div id="apiResult"></div>
+    </div>
+
+    <div class="card">
+      <h2>스프레드시트 등록 이력 기록</h2>
+      <div class="hint" style="margin-bottom:8px;">
+        로그인한 파트너 키 기준으로 자동 연동됩니다. <b>'일괄등록' 원본양식 다운로드</b> 또는 <b>API 등록 성공</b> 시,
+        기록할 내용(단가 기준 예상 금액 포함)을 확인 팝업으로 먼저 보여드리고 "예"를 눌러야 실제로 스프레드시트에 기록됩니다.
+      </div>
+      <div id="settlementResult" class="preview">아직 기록된 내역이 없습니다.</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ==================== 타입/로직 정의 ====================
+function maskText(s){
+  if(s===undefined||s===null) return s;
+  s = String(s);
+  if(s.length===0) return s;
+  if(s.length<=2) return s.slice(0,-1)+"X";
+  return s.split('').map((ch,i)=> ((i+1)%3===0) ? 'X' : ch).join('');
+}
+// "1,050" 같은 천단위 구분 쉼표가 섞인 값도 숫자로 인식하도록 처리
+function parseNum(s){
+  if(s===undefined||s===null||s==='') return NaN;
+  const n = Number(String(s).replace(/,/g,'').trim());
+  return n;
+}
+function firstKeyword(k){ if(!k) return ""; return String(k).split(',')[0].trim(); }
+function autoTitle(k){ const kw=firstKeyword(k); return kw? ("[정답입력]"+kw) : "[정답입력]"; }
+function splitKeywords(k){ if(!k) return []; return String(k).split(',').map(s=>s.trim()).filter(Boolean); }
+
+// NPM0(길찾기거리)의 '명소' 마스킹: 앞쪽 절반 유지 + 뒤쪽 절반은 소문자 x
+function halfMask(s){
+  if(!s) return s;
+  s = String(s);
+  const maskLen = Math.floor(s.length/2);
+  const keepLen = s.length - maskLen;
+  return s.slice(0, keepLen) + 'x'.repeat(maskLen);
+}
+
+// NPM0의 '정답(거리)' -> 허용 오차 범위 문자열로 변환 (정수면 ±30, 소수면 ±3)
+function distanceRange(raw){
+  const n = Number(String(raw).replace(/,/g,''));
+  if(isNaN(n)) return String(raw);
+  if(Number.isInteger(n)){
+    const lo = Math.max(n-30, 1), hi = n+30;
+    return `${lo}~${hi}`;
+  }
+  const lo = Math.max(n-3, 1), hi = n+3;
+  return `${lo.toFixed(1)}~${hi.toFixed(1)}`;
+}
+
+const COMMON_COLS = [
+  {id:'code', label:'캠페인 코드', req:true},
+  {id:'startAt', label:'시작일', req:true},
+  {id:'endAt', label:'종료일', req:true},
+  {id:'totalQuota', label:'전체참여한도', req:true},
+  {id:'dailyQuota', label:'일참여한도', req:true},
+  {id:'supplyPrice', label:'공급단가', req:false},
+  {id:'adBudget', label:'광고예산', req:false},
+  {id:'hintUrlChoice', label:'힌트랜딩URL', req:false}
+];
+
+const TYPES = {
+  NPD0: {
+    label: "NPD0 · 길찾기",
+    openUrlField: "place_url",
+    fields: [
+      {id:"keyword", label:"키워드(,구분)", req:true, ph:"대정읍 당근케익,모슬포 디저트 카페"},
+      {id:"place_url", label:"플레이스URL", req:true, ph:"https://m.place.naver.com/restaurant/xxxx"},
+      {id:"rank", label:"플레이스순위", req:false, ph:"1"},
+      {id:"place_name", label:"플레이스명", req:true, ph:"재클린디저트 모슬포점"}
+    ],
+    build(v){
+      const place = (v.place_name||"").trim();
+      const question =
+`1. 키워드 복사 후 검색하러가기 클릭
+2. 복사한 키워드 검색 후 '플레이스명' 클릭
+3. [길찾기] 또는 [내비게이션] 클릭하여 '네이버 지도앱'으로 이동하기
+4. [차량탭] > [안내시작] 순서대로 클릭 후 화면 캡쳐하기
+
+<문제>
+캡쳐화면 업로드하기
+플레이스명이 나오게 캡쳐해주세요!
+
+<힌트>
+플레이스명: ${maskText(place)}
+
+*네이버 지도앱 설치 필수*`;
+      return {question, answer: place, title: autoTitle(v.keyword)};
+    }
+  },
+  NPN0: {
+    label: "NPN0 · 명소",
+    openUrlField: "place_url",
+    fields: [
+      {id:"keyword", label:"키워드(,구분)", req:true, ph:"대정읍 당근케익,모슬포 디저트 카페"},
+      {id:"place_url", label:"플레이스URL", req:true, ph:"https://m.place.naver.com/restaurant/xxxx"},
+      {id:"rank", label:"플레이스순위", req:false, ph:"1"},
+      {id:"place_name", label:"플레이스명", req:true, ph:"재클린디저트 모슬포점"},
+      {id:"spot1", label:"명소1", req:true, ph:"남당항 해양분수공원"},
+      {id:"spot2", label:"명소2", req:false, ph:""},
+      {id:"spot3", label:"명소3", req:false, ph:""},
+      {id:"spot4", label:"명소4", req:false, ph:""},
+      {id:"spot5", label:"명소5", req:false, ph:""}
+    ],
+    build(v){
+      const place=(v.place_name||"").trim();
+      const spots=[1,2,3,4,5].map(i=>({idx:i, name:(v["spot"+i]||"").trim()})).filter(s=>s.name);
+      if(spots.length===0) throw new Error("명소1~5 중 최소 1개는 입력해야 합니다.");
+      let target=spots[0];
+      for(const s of spots){ if(s.name.length < target.name.length) target=s; }
+      const question =
+`1. 키워드 복사 후 검색하러 가기 클릭
+2. 복사한 키워드 검색 후 '플레이스명' 클릭 
+3.'주변' > '명소' 순으로 클릭 후 'N'번째 명소 찾기
+4. 플레이스 영역 미노출되는 경우, 블로그 클릭 후 플레이스로 이동
+
+<문제>  
+${target.idx} 번째 명소
+
+<힌트>
+플레이스명: ${maskText(place)}`;
+      return {question, answer: target.name, title: autoTitle(v.keyword)};
+    }
+  },
+  NSN4: {
+    label: "NSN4 · 상품번호",
+    openUrlField: "shopping_url",
+    fields: [
+      {id:"keyword", label:"키워드(,구분)", req:true, ph:"통오리,통닭,통돼지"},
+      {id:"shopping_url", label:"쇼핑URL", req:true, ph:"https://smartstore.naver.com/main/products/xxxx"},
+      {id:"page", label:"페이지", req:false, ph:"1"},
+      {id:"rank", label:"순위", req:false, ph:"1"},
+      {id:"store_name", label:"스토어명", req:true, ph:"팜스제임"},
+      {id:"product_name", label:"상품명", req:true, ph:"[냉장] 팜스제임 23호 통오리..."},
+      {id:"price", label:"상품가격", req:true, ph:"13,700 원"},
+      {id:"product_no", label:"상품번호", req:true, ph:"10486805661"},
+      {id:"prefix_or_suffix", label:"정답자리", req:true, type:"select", options:["앞 네자리","뒤 네자리"]},
+      {id:"image_url", label:"이미지URL", req:false, ph:"https://.../image.jpg"}
+    ],
+    build(v){
+      const store=(v.store_name||"").trim();
+      const product=(v.product_name||"").trim();
+      const price=(v.price||"").trim();
+      const no=(v.product_no||"").trim();
+      const choice=(v.prefix_or_suffix||"앞 네자리").trim();
+      const answer = choice==="뒤 네자리" ? no.slice(-4) : no.slice(0,4);
+      const page=(v.page||"").trim(), rank=(v.rank||"").trim();
+      let rankLine="";
+      if(page||rank){
+        const parts=[page, rank? (rank+"위"):""].filter(Boolean);
+        rankLine="순위(광고제외) : "+parts.join(", ");
+      }
+      const question =
+`1. 키워드 복사 후 검색하러 가기 클릭
+2. 복사한 키워드 검색 후 '네이버 가격비교 더보기' 클릭
+3. 힌트와 일치하는 '상품명'과 '스토어' 선택
+4. 상세정보 하단 '구매 추가정보'에서 '상품번호' 확인
+
+<문제>
+상품번호: ${choice}
+
+<힌트>
+스토어명 : ${maskText(store)}
+상품명   : ${maskText(product)}
+상품금액 : ${price}` + (rankLine? "\n"+rankLine : "");
+      return {question, answer, title: autoTitle(v.keyword)};
+    }
+  },
+  NPM0: {
+    label: "NPM0 · 길찾기거리",
+    openUrlField: "place_url",
+    fields: [
+      {id:"keyword", label:"키워드(,구분)", req:true, ph:"대정읍 당근케익,모슬포 디저트 카페"},
+      {id:"place_url", label:"플레이스URL", req:true, ph:"https://m.place.naver.com/restaurant/xxxx"},
+      {id:"rank", label:"플레이스순위", req:false, ph:"1"},
+      {id:"place_name", label:"플레이스명", req:true, ph:"재클린디저트 모슬포점"},
+      {id:"startType", label:"기준지점", req:true, type:"select", options:["명소","출발지"]},
+      {id:"order_n", label:"n번째(명소일 때만)", req:false, ph:"3"},
+      {id:"ref_name", label:"명소/출발지명", req:true, ph:"서리풀공원"},
+      {id:"distance_answer", label:"정답거리(m 또는 km)", req:true, ph:"350 또는 1.2"}
+    ],
+    build(v){
+      const place=(v.place_name||"").trim();
+      const refName=(v.ref_name||"").trim();
+      const startType=(v.startType||"명소").trim();
+      const answer = distanceRange(v.distance_answer);
+      const maskedPlace = maskText(place);
+      let question;
+      if(startType==="출발지"){
+        question =
+`1. 키워드 복사 후 검색하러가기 클릭
+2. 검색창에 키워드 지우고 복사한 키워드 붙여넣기
+3. 힌트와 일치하는 플레이스명 찾기
+4. '길찾기' 클릭
+5.'출발지'에  힌트에서 제시하는 장소 붙여넣고 '도보'에 나오는 '가장 빠른'거리 입력하기
+
+<문제>  
+''가장 빠른'' 거리 입력 (@@@m, @.@km)
+
+<힌트>
+플레이스명: ${maskedPlace}
+출발지: ${refName}`;
+      } else {
+        const n = (v.order_n||"").trim();
+        if(!n) throw new Error("'명소' 방식은 n번째 값을 입력해야 합니다.");
+        const maskedRef = halfMask(refName);
+        question =
+`1. 키워드 복사 후 검색하러가기 클릭 
+2. 힌트에서 제시한  '플레이스명' 클릭 
+3. 플레이스명 복사 후  '주변' > '명소' 순으로 클릭
+4. 힌트에서 제시한 '명소' 클릭 후 '길찾기' 클릭
+5.'출발지'에  '플레이스명' 붙여넣고 '도보'에 나오는 '가장 빠른'거리 입력하기
+
+<문제>  
+''가장 빠른'' 거리 입력 (@@@m, @.@km)
+
+<힌트>
+플레이스명: ${maskedPlace}
+${n}번쨰 명소: ${maskedRef}`;
+      }
+      return {question, answer, title: autoTitle(v.keyword)};
+    }
+  }
+};
+
+const GRID_EXCLUDE_IDS = ['code','supplyPrice','adBudget'];
+const GRID_COLS = COMMON_COLS.filter(c=>!GRID_EXCLUDE_IDS.includes(c.id));
+
+function getColumnMeta(typeKey){
+  return GRID_COLS.concat(TYPES[typeKey].fields.map(f=>({id:f.id, label:f.label, req:!!f.req})));
+}
+function getColumnOrder(typeKey){ return getColumnMeta(typeKey).map(c=>c.id); }
+function autoCode(typeKey, idx){ return `${typeKey}_${Date.now()}_${idx}`; }
+
+// ==================== 상태 ====================
+let currentType = "NPD0";
+let currentMode = "individual"; // 'individual' | 'bulk'
+let campaigns = [];
+let gridByType = {}; // { NPD0: [[...],[...]], ... }
+
+function emptyGrid(typeKey, rows){
+  const n = getColumnMeta(typeKey).length;
+  return Array.from({length: rows}, ()=> Array(n).fill(''));
+}
+function getGrid(typeKey){
+  if(!gridByType[typeKey]) gridByType[typeKey] = emptyGrid(typeKey, 10);
+  return gridByType[typeKey];
+}
+
+// ==================== 캠페인 추가 공용 로직 ====================
+function tryAddCampaign(typeKey, row){
+  const missingCommon = COMMON_COLS.filter(c=>c.req && !row[c.id]).map(c=>c.label);
+  if(missingCommon.length) return {success:false, error:"공통 필수값 누락: "+missingCommon.join(", ")};
+
+  const missingType = TYPES[typeKey].fields.filter(f=>f.req && !row[f.id]).map(f=>f.label);
+  if(missingType.length) return {success:false, error:"필수 항목 누락: "+missingType.join(", ")};
+
+  if(campaigns.some(c=>c.code===row.code)) return {success:false, error:"캠페인 코드 중복: "+row.code};
+
+  let built;
+  try{ built = TYPES[typeKey].build(row); }
+  catch(e){ return {success:false, error:"문제/정답 생성 오류: "+e.message}; }
+
+  const openUrl = row[TYPES[typeKey].openUrlField] || "";
+
+  const campaign = {
+    code: row.code,
+    type: typeKey,
+    title: built.title,
+    openUrl: openUrl,
+    startAt: row.startAt,
+    endAt: row.endAt,
+    totalQuota: parseNum(row.totalQuota),
+    dailyQuota: parseNum(row.dailyQuota),
+    quiz: [{ id:1, question: built.question, answer: built.answer, keyword: splitKeywords(row.keyword) }]
+  };
+  if(row.supplyPrice && String(row.supplyPrice).trim()!==''){ campaign.supplyPrice = parseNum(row.supplyPrice); }
+  if(row.hintUrlChoice && String(row.hintUrlChoice).trim()!==''){ campaign.hintUrl = [String(row.hintUrlChoice).trim()]; }
+  if(row.image_url && String(row.image_url).trim()!==''){ campaign.thumbImg = String(row.image_url).trim(); }
+
+  campaigns.push(campaign);
+  return {success:true, campaign};
+}
+
+// ==================== 모드 탭 ====================
+document.getElementById('modeIndividual').addEventListener('click', ()=> setMode('individual'));
+document.getElementById('modeBulk').addEventListener('click', ()=> setMode('bulk'));
+function setMode(mode){
+  currentMode = mode;
+  document.getElementById('modeIndividual').classList.toggle('active', mode==='individual');
+  document.getElementById('modeBulk').classList.toggle('active', mode==='bulk');
+  document.getElementById('individualMode').style.display = mode==='individual' ? 'block':'none';
+  document.getElementById('bulkMode').style.display = mode==='bulk' ? 'block':'none';
+  document.getElementById('previewCard').style.display = mode==='individual' ? 'block':'none';
+  if(mode==='bulk') renderGrid();
+}
+
+
+
+// ==================== 타입 탭 ====================
+const typeTabsEl = document.getElementById('typeTabs');
+Object.keys(TYPES).forEach(key=>{
+  const btn=document.createElement('div');
+  btn.className='tab'+(key===currentType?' active':'');
+  btn.textContent=TYPES[key].label;
+  btn.dataset.key=key;
+  btn.onclick=()=>{ currentType=key; renderAll(); };
+  typeTabsEl.appendChild(btn);
+});
+
+function renderTypeFields(){
+  const wrap=document.getElementById('typeFields');
+  wrap.innerHTML="";
+  TYPES[currentType].fields.forEach(f=>{
+    const div=document.createElement('div');
+    div.className='field'+(f.req?' req':'');
+    const label=document.createElement('label');
+    label.innerHTML = f.label+' <span class="badge '+(f.req?'req">필수':'opt">선택')+'</span>';
+    div.appendChild(label);
+    let input;
+    if(f.type==='select'){
+      input=document.createElement('select');
+      f.options.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; input.appendChild(op); });
+    } else {
+      input=document.createElement('input'); input.type='text'; input.placeholder=f.ph||"";
+    }
+    input.id='tf_'+f.id;
+    input.addEventListener('input', updatePreview);
+    input.addEventListener('change', updatePreview);
+    div.appendChild(input);
+    wrap.appendChild(div);
+  });
+}
+
+function getTypeValues(){
+  const v={};
+  TYPES[currentType].fields.forEach(f=>{ v[f.id]=document.getElementById('tf_'+f.id).value; });
+  return v;
+}
+
+function updatePreview(){
+  const v=getTypeValues();
+  try{
+    const {question, answer, title} = TYPES[currentType].build(v);
+    document.getElementById('prevTitle').textContent=title;
+    document.getElementById('prevQuestion').textContent=question;
+    document.getElementById('prevAnswer').textContent=answer;
+  }catch(e){
+    document.getElementById('prevTitle').textContent="-";
+    document.getElementById('prevQuestion').textContent="(입력 필요) "+e.message;
+    document.getElementById('prevAnswer').textContent="-";
+  }
+}
+
+function renderAll(){
+  Array.from(typeTabsEl.children).forEach(b=> b.classList.toggle('active', b.dataset.key===currentType));
+  renderTypeFields();
+  updatePreview();
+  if(currentMode==='bulk') renderGrid();
+}
+
+// ==================== 개별 등록 ====================
+document.getElementById('btnAdd').addEventListener('click', ()=>{
+  const row = {
+    code: document.getElementById('f_code').value.trim(),
+    startAt: document.getElementById('f_startAt').value.trim(),
+    endAt: document.getElementById('f_endAt').value.trim(),
+    totalQuota: document.getElementById('f_totalQuota').value.trim(),
+    dailyQuota: document.getElementById('f_dailyQuota').value.trim(),
+    supplyPrice: document.getElementById('f_supplyPrice').value.trim(),
+    adBudget: document.getElementById('f_adBudget').value.trim(),
+    hintUrlChoice: document.getElementById('f_hintUrlChoice').value
+  };
+  Object.assign(row, getTypeValues());
+  const result = tryAddCampaign(currentType, row);
+  if(!result.success){ alert(result.error); return; }
+  renderList();
+  document.getElementById('jsonOut').style.display='none';
+  document.getElementById('jsonActions').style.display='none';
+});
+
+// ==================== 일괄 등록 (엑셀형태 그리드) ====================
+function renderGrid(){
+  const meta = getColumnMeta(currentType);
+  const grid = getGrid(currentType);
+  const table = document.getElementById('gridTable');
+  table.innerHTML = "";
+
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  trh.appendChild(document.createElement('th')); // 행번호 칸
+  meta.forEach(c=>{
+    const th=document.createElement('th');
+    th.innerHTML = c.label + ' <span class="badge '+(c.req?'req">필수':'opt">선택')+'</span>';
+    trh.appendChild(th);
+  });
+  trh.appendChild(document.createElement('th'));
+  thead.appendChild(trh);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  grid.forEach((rowArr, r)=>{
+    const tr=document.createElement('tr');
+    const tdNum=document.createElement('td'); tdNum.className='rownum'; tdNum.textContent=(r+1);
+    tr.appendChild(tdNum);
+
+    meta.forEach((c, ci)=>{
+      const td=document.createElement('td');
+      td.dataset.r = r; td.dataset.c = ci;
+      let input;
+      if(TYPES[currentType].fields.find(f=>f.id===c.id && f.type==='select')){
+        const fdef = TYPES[currentType].fields.find(f=>f.id===c.id);
+        input=document.createElement('select');
+        const blank=document.createElement('option'); blank.value=''; blank.textContent='(선택)'; input.appendChild(blank);
+        fdef.options.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; input.appendChild(op); });
+      } else {
+        input=document.createElement('input'); input.type='text';
+        if(c.id==='hintUrlChoice') input.setAttribute('list','hintUrlOptions');
+      }
+      input.value = rowArr[ci] || '';
+      input.addEventListener('input', ()=>{ grid[r][ci] = input.value; });
+      input.addEventListener('change', ()=>{ grid[r][ci] = input.value; });
+      input.addEventListener('paste', (e)=> handleGridPaste(e, r, ci));
+      input.addEventListener('focus', ()=>{ activeCell={r, c:ci}; td.appendChild(fillHandleEl); });
+      td.appendChild(input);
+      tr.appendChild(td);
+    });
+
+    const tdDel=document.createElement('td'); tdDel.className='delcell';
+    const delBtn=document.createElement('button'); delBtn.className='btn-danger'; delBtn.textContent='삭제';
+    delBtn.onclick=()=>{ grid.splice(r,1); renderGrid(); };
+    tdDel.appendChild(delBtn);
+    tr.appendChild(tdDel);
+
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  placeHandleAtActive();
+}
+
+function handleGridPaste(e, r, c){
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  if(!text) return;
+  let lines = text.replace(/\r/g,'').split('\n');
+  if(lines.length && lines[lines.length-1]==='') lines.pop(); // 끝 개행 제거
+  const isMulti = lines.length>1 || lines[0].indexOf('\t')>=0;
+  if(!isMulti) return; // 단일 셀이면 기본 붙여넣기 동작 사용
+
+  e.preventDefault();
+  const grid = getGrid(currentType);
+  const colCount = getColumnMeta(currentType).length;
+
+  while(grid.length < r + lines.length){ grid.push(Array(colCount).fill('')); }
+
+  lines.forEach((line, li)=>{
+    const cells = line.split('\t');
+    cells.forEach((val, ci)=>{
+      const targetCol = c + ci;
+      if(targetCol < colCount){ grid[r+li][targetCol] = val; }
+    });
+  });
+  renderGrid();
+}
+
+// ---- 채우기 핸들 (드래그로 값 채우기) ----
+let activeCell = {r:0, c:0};
+const fillHandleEl = document.createElement('div');
+fillHandleEl.className = 'fillhandle';
+
+function placeHandleAtActive(){
+  const table = document.getElementById('gridTable');
+  const td = table.querySelector(`td[data-r="${activeCell.r}"][data-c="${activeCell.c}"]`);
+  if(td) td.appendChild(fillHandleEl);
+}
+
+let isFilling=false, fillSourceR=null, fillSourceC=null, fillSourceVal=null, fillTargetR=null;
+
+fillHandleEl.addEventListener('mousedown', (e)=>{
+  e.preventDefault(); e.stopPropagation();
+  isFilling = true;
+  fillSourceR = activeCell.r; fillSourceC = activeCell.c;
+  fillSourceVal = getGrid(currentType)[fillSourceR][fillSourceC];
+  document.addEventListener('mousemove', onFillMouseMove);
+  document.addEventListener('mouseup', onFillMouseUp);
+});
+
+function onFillMouseMove(e){
+  if(!isFilling) return;
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const td = el && el.closest ? el.closest('td[data-r]') : null;
+  if(td && Number(td.dataset.c)===fillSourceC){
+    fillTargetR = parseInt(td.dataset.r, 10);
+    document.querySelectorAll('table.grid td.selected').forEach(t=>t.classList.remove('selected'));
+    const r1=Math.min(fillSourceR,fillTargetR), r2=Math.max(fillSourceR,fillTargetR);
+    for(let rr=r1; rr<=r2; rr++){
+      const cell = document.querySelector(`table.grid td[data-r="${rr}"][data-c="${fillSourceC}"]`);
+      if(cell) cell.classList.add('selected');
+    }
+  }
+}
+
+function onFillMouseUp(){
+  if(!isFilling) return;
+  isFilling=false;
+  document.removeEventListener('mousemove', onFillMouseMove);
+  document.removeEventListener('mouseup', onFillMouseUp);
+  document.querySelectorAll('table.grid td.selected').forEach(t=>t.classList.remove('selected'));
+  if(fillTargetR===null || fillTargetR===fillSourceR){ fillTargetR=null; return; }
+  const grid = getGrid(currentType);
+  const r1=Math.min(fillSourceR,fillTargetR), r2=Math.max(fillSourceR,fillTargetR);
+  for(let rr=r1; rr<=r2; rr++){
+    if(rr===fillSourceR) continue;
+    if(rr<grid.length) grid[rr][fillSourceC] = fillSourceVal;
+  }
+  activeCell = {r:fillSourceR, c:fillSourceC};
+  fillTargetR = null;
+  renderGrid();
+}
+
+// ---- 엑셀 다운로드 / 업로드 ----
+document.getElementById('btnDownloadXlsx').addEventListener('click', ()=>{
+  if(typeof XLSX === 'undefined'){ alert("엑셀 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해주세요."); return; }
+  const meta = getColumnMeta(currentType);
+  const grid = getGrid(currentType);
+  const aoa = [meta.map(m=>m.label)].concat(grid);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, currentType);
+  XLSX.writeFile(wb, `QuizClick_${currentType}_원본데이터백업.xlsx`);
+});
+
+// '일괄등록' 원본양식(기존 NPD0/NPN0/NSN4 파일의 최종 업로드 시트)과 동일한 컬럼 구성으로 내보내기
+function buildLegacyRows(typeKey){
+  const grid = getGrid(typeKey);
+  const advertiserId = document.getElementById('f_advertiserId').value.trim();
+  const header = [
+    '#','광고주\nID','캠페인타입','캠페인명','시작일시\n(yyyy-mm-dd)','종료일시',
+    '전체 참여 인원','일 최대참여인원','광고단가','광고예산','힌트랜딩\nURL','플레이스\n URL','키워드',
+    '','','','','문제','정답',''
+  ];
+  if(typeKey==='NPM0') header[19] = '명소/출발지';
+  if(typeKey==='NSN4') header.push('이미지');
+
+  const cols = getColumnOrder(typeKey);
+  const rows=[]; const errors=[]; const settlementItems=[]; let seq=1;
+
+  function toDate(s){
+    if(!s) return '';
+    const d = new Date(String(s).trim().replace(' ', 'T'));
+    return isNaN(d.getTime()) ? s : d;
+  }
+  function toNum(s){
+    if(s===undefined||s===null||String(s).trim()==='') return '';
+    const n = Number(String(s).replace(/,/g,''));
+    return isNaN(n) ? s : n;
+  }
+
+  grid.forEach((rowArr, i)=>{
+    if(rowArr.every(v=>!v || !String(v).trim())) return;
+    const row={};
+    cols.forEach((id, idx)=> row[id]=(rowArr[idx]||'').trim());
+    row.code = autoCode(typeKey, i);
+
+    const missingCommon = COMMON_COLS.filter(c=>c.req && !row[c.id]).map(c=>c.label);
+    const missingType = TYPES[typeKey].fields.filter(f=>f.req && !row[f.id]).map(f=>f.label);
+    if(missingCommon.length || missingType.length){
+      errors.push(`${i+1}행 (코드: ${row.code||'?'}): 필수값 누락 - ${missingCommon.concat(missingType).join(', ')}`);
+      return;
+    }
+    let built;
+    try{ built = TYPES[typeKey].build(row); }
+    catch(e){ errors.push(`${i+1}행 (코드: ${row.code||'?'}): ${e.message}`); return; }
+
+    const line = [
+      seq++, advertiserId, typeKey, built.title, toDate(row.startAt), toDate(row.endAt),
+      toNum(row.totalQuota), toNum(row.dailyQuota), toNum(row.supplyPrice), toNum(row.adBudget),
+      row.hintUrlChoice||'', row[TYPES[typeKey].openUrlField]||'', row.keyword||'',
+      '', '', '', '', built.question, built.answer,
+      (typeKey==='NPM0') ? (row.ref_name||'') : ''
+    ];
+    if(typeKey==='NSN4') line.push(row.image_url||'');
+    rows.push(line);
+    settlementItems.push({
+      code: row.code, type: typeKey, totalQuota: parseNum(row.totalQuota)||0,
+      dailyQuota: parseNum(row.dailyQuota)||0, startAt: row.startAt, endAt: row.endAt
+    });
+  });
+
+  return {header, rows, errors, settlementItems};
+}
+
+document.getElementById('btnDownloadLegacyXlsx').addEventListener('click', async ()=>{
+  if(typeof XLSX === 'undefined'){ alert("엑셀 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해주세요."); return; }
+  const {header, rows, errors, settlementItems} = buildLegacyRows(currentType);
+  if(rows.length===0){
+    alert("내보낼 수 있는 캠페인이 없습니다.\n" + (errors.length? errors.join("\n") : "그리드에 데이터를 입력해주세요."));
+    return;
+  }
+  const blankRow = Array(header.length).fill('');
+  const receivedRow = ['접수날짜', new Date()].concat(Array(header.length-2).fill(''));
+  const aoa = [blankRow, receivedRow, blankRow, header].concat(rows);
+  const ws = XLSX.utils.aoa_to_sheet(aoa, {cellDates:true});
+  ws['!cols'] = header.map((h,i)=> i===3? {wch:26} : (i===11||i===12? {wch:26} : (i===17? {wch:60} : {wch:14})));
+
+  if(currentType==='NPM0'){
+    // M~Q(13~17번째, 0-based 12~16) 열을 헤더행 + 각 데이터행에서 병합
+    const HEADER_ROW_IDX = 3; // 0-based: blank,접수날짜,blank,header
+    const merges = [{s:{r:HEADER_ROW_IDX, c:12}, e:{r:HEADER_ROW_IDX, c:16}}];
+    rows.forEach((_, i)=>{
+      merges.push({s:{r:HEADER_ROW_IDX+1+i, c:12}, e:{r:HEADER_ROW_IDX+1+i, c:16}});
+    });
+    ws['!merges'] = (ws['!merges']||[]).concat(merges);
+  }
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '일괄등록양식(수정X)');
+  XLSX.writeFile(wb, `${new Date().toISOString().slice(0,10).replace(/-/g,'')}_${document.getElementById('f_advertiserId').value.trim()||'partner'}_일괄등록_${TYPES[currentType].label.split(' · ')[1]}.xlsx`);
+
+  const resEl=document.getElementById('gridResult');
+  let html = `<div class="apiresult ${errors.length? 'err':'ok'}">✅ 내보냄: ${rows.length}건 / ❌ 제외: ${errors.length}건`;
+  if(errors.length) html += "\n\n"+errors.join("\n");
+  html += "</div>";
+  resEl.innerHTML = html;
+
+  await runSettlementFlow(settlementItems, '엑셀다운로드');
+});
+
+document.getElementById('fileUploadXlsx').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  if(typeof XLSX === 'undefined'){ alert("엑셀 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해주세요."); return; }
+  const reader = new FileReader();
+  reader.onload = (evt)=>{
+    const data = new Uint8Array(evt.target.result);
+    const wb = XLSX.read(data, {type:'array'});
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
+    const dataRows = rows.slice(1); // 첫 행은 헤더로 간주하고 제외
+    const colCount = getColumnMeta(currentType).length;
+    const newGrid = dataRows.map(r=>{
+      const arr = Array(colCount).fill('');
+      for(let i=0;i<Math.min(colCount, r.length); i++){ arr[i] = (r[i]===undefined||r[i]===null) ? '' : String(r[i]); }
+      return arr;
+    });
+    while(newGrid.length < 10) newGrid.push(Array(colCount).fill(''));
+    gridByType[currentType] = newGrid;
+    activeCell = {r:0, c:0};
+    renderGrid();
+    e.target.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+document.getElementById('btnAddRows').addEventListener('click', ()=>{
+  const grid = getGrid(currentType);
+  const colCount = getColumnMeta(currentType).length;
+  for(let i=0;i<10;i++) grid.push(Array(colCount).fill(''));
+  renderGrid();
+});
+
+document.getElementById('btnClearGrid').addEventListener('click', ()=>{
+  if(!confirm("현재 타입의 그리드 내용을 모두 지울까요?")) return;
+  gridByType[currentType] = emptyGrid(currentType, 10);
+  renderGrid();
+  document.getElementById('gridResult').innerHTML='';
+});
+
+document.getElementById('btnGridSubmit').addEventListener('click', ()=>{
+  const grid = getGrid(currentType);
+  const cols = getColumnOrder(currentType);
+  let ok=0; const errors=[]; const addedCampaigns=[];
+
+  for(let i=0;i<grid.length;i++){
+    const rowArr = grid[i];
+    if(rowArr.every(v=>!v || !String(v).trim())) continue; // 완전 빈 행은 스킵
+    const row={};
+    cols.forEach((id, idx)=> row[id] = (rowArr[idx]||'').trim());
+    row.code = autoCode(currentType, i);
+    const result = tryAddCampaign(currentType, row);
+    if(result.success){ ok++; addedCampaigns.push(result.campaign); }
+    else errors.push(`${i+1}행 (코드: ${row.code||'?'}): ${result.error}`);
+  }
+
+  renderList();
+  document.getElementById('jsonOut').style.display='none';
+  document.getElementById('jsonActions').style.display='none';
+
+  const resEl=document.getElementById('gridResult');
+  let html = `<div class="apiresult ${errors.length? 'err':'ok'}">✅ 성공: ${ok}건 / ❌ 실패: ${errors.length}건`;
+  if(errors.length) html += "\n\n"+errors.join("\n");
+  html += "</div>";
+  resEl.innerHTML = html;
+});
+
+// ==================== 등록 대기 목록 ====================
+function renderList(){
+  const wrap=document.getElementById('campaignList');
+  document.getElementById('listCount').textContent = campaigns.length;
+  if(campaigns.length===0){ wrap.innerHTML='<div class="empty">아직 추가된 캠페인이 없습니다.</div>'; return; }
+  wrap.innerHTML="";
+  campaigns.forEach((c,idx)=>{
+    const div=document.createElement('div'); div.className='list-item';
+    div.innerHTML = `<div>
+        <span class="type-pill">${c.type}</span><b>${c.code}</b>
+        <div class="meta">${c.title} · ${c.startAt} ~ ${c.endAt} · 정답: ${c.quiz[0].answer}</div>
+      </div>`;
+    const btn=document.createElement('button'); btn.className='btn-danger'; btn.textContent='삭제';
+    btn.onclick=()=>{ campaigns.splice(idx,1); renderList(); };
+    div.appendChild(btn);
+    wrap.appendChild(div);
+  });
+}
+
+// ==================== JSON 생성 ====================
+function buildPayload(){ return { campaign: campaigns }; }
+
+document.getElementById('btnGenJson').addEventListener('click', ()=>{
+  if(campaigns.length===0){ alert("먼저 캠페인을 목록에 추가해주세요."); return; }
+  const json = JSON.stringify(buildPayload(), null, 2);
+  const out=document.getElementById('jsonOut');
+  out.value=json; out.style.display='block';
+  document.getElementById('jsonActions').style.display='flex';
+});
+
+document.getElementById('btnCopy').addEventListener('click', ()=>{
+  const out=document.getElementById('jsonOut');
+  out.select(); document.execCommand('copy');
+  alert("JSON이 복사되었습니다.");
+});
+
+document.getElementById('btnDownload').addEventListener('click', ()=>{
+  const blob=new Blob([document.getElementById('jsonOut').value], {type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='registerCampaign_request.json';
+  a.click(); URL.revokeObjectURL(url);
+});
+
+// ==================== API 호출 ====================
+document.getElementById('btnCallApi').addEventListener('click', async ()=>{
+  if(campaigns.length===0){ alert("먼저 캠페인을 목록에 추가해주세요."); return; }
+  const env=document.getElementById('f_env').value;
+  const partner=document.getElementById('f_partner').value.trim();
+  const apikey=document.getElementById('f_apikey').value.trim();
+  const resultEl=document.getElementById('apiResult');
+  if(!partner || !apikey){ alert("partner와 API KEY를 입력해주세요."); return; }
+
+  const url = `${env}/v1/ext/${partner}/registerCampaign`;
+  resultEl.className='apiresult'; resultEl.textContent='호출 중...';
+  try{
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'X-Client-ID': apikey },
+      body: JSON.stringify(buildPayload())
+    });
+    const data = await res.json().catch(()=>({raw: '(JSON 아님)'}));
+    if(data.statusCode===0){
+      resultEl.className='apiresult ok';
+      resultEl.textContent = "✅ 등록 성공\n"+JSON.stringify(data, null, 2);
+      await runSettlementFlow(campaigns.map(c=>({
+        code:c.code, type:c.type, totalQuota:c.totalQuota,
+        dailyQuota:c.dailyQuota, startAt:c.startAt, endAt:c.endAt
+      })), 'API등록');
+    } else {
+      resultEl.className='apiresult err';
+      resultEl.textContent = "❌ 등록 실패\n"+JSON.stringify(data, null, 2);
+    }
+  }catch(e){
+    resultEl.className='apiresult err';
+    resultEl.textContent = "❌ 호출 실패 (CORS 또는 네트워크 문제일 수 있습니다)\n"+e.message+"\n\n이 경우 'JSON 파일 다운로드' 후 curl이나 기존 스크립트로 등록해주세요.";
+  }
+});
+
+
+// ==================== 파트너 정산 연동 (구글 스프레드시트) ====================
+const SHOPPING_TYPES = ['NSN4']; // 쇼핑단가를 적용할 타입 (Apps Script와 동일하게 유지)
+function isShoppingType(type){ return SHOPPING_TYPES.indexOf(type) !== -1; }
+function fmtWon(n){ return '₩' + Number(n||0).toLocaleString(); }
+
+function renderSettlementResult(html){
+  document.getElementById('settlementResult').innerHTML = html;
+}
+
+// items: [{code, type, totalQuota, dailyQuota, startAt, endAt}, ...] / source: 'API등록' | '엑셀다운로드'
+async function runSettlementFlow(items, source){
+  if(!currentPartner){ return; } // 로그인 안 된 상태면 조용히 스킵
+  if(!items || items.length===0) return;
+
+  const info = currentPartner;
+  const priced = items.map(it=>{
+    const unitPrice = isShoppingType(it.type) ? info.shoppingPrice : info.placePrice;
+    return { ...it, unitPrice, amount: (Number(it.totalQuota)||0) * unitPrice };
+  });
+  const totalAmount = priced.reduce((s,p)=>s+p.amount, 0);
+
+  const summary = priced.map(p=>` - ${p.code} (${p.type}): 참여한도 ${p.totalQuota} × 단가 ${fmtWon(p.unitPrice)} = ${fmtWon(p.amount)}`).join('\n');
+  const ok = confirm(
+    `[${source}] 파트너 ${info.partnerId}${info.partnerName? ' ('+info.partnerName+')':''} 기준\n`+
+    `총 ${priced.length}건, 정산 합계 금액은 ${fmtWon(totalAmount)} 입니다.\n\n${summary}\n\n스프레드시트에 기록하시겠습니까?`
+  );
+  if(!ok){ renderSettlementResult('정산 기록을 취소했습니다.'); return; }
+
+  try{
+    const res = await fetch(SETTLEMENT_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'}, // Apps Script CORS 프리플라이트 회피
+      body: JSON.stringify({
+        type:'register', partnerId: info.partnerId, source,
+        campaigns: items.map(it=>({
+          campaignCode:it.code, campaignType:it.type, totalQuota:it.totalQuota,
+          dailyQuota:it.dailyQuota, startAt:it.startAt, endAt:it.endAt
+        }))
+      })
+    });
+    const data = await res.json();
+    if(data.success){
+      renderSettlementResult(
+        `<div class="apiresult ok">✅ [${source}] ${priced.length}건 기록 완료 · 이번 합계 ${fmtWon(data.totalAmount)} · 파트너 누적 ${fmtWon(data.partnerTotal)}</div>`
+      );
+    } else {
+      renderSettlementResult(`<div class="apiresult err">❌ 기록 실패: ${data.error||'알 수 없는 오류'}</div>`);
+    }
+  }catch(e){
+    renderSettlementResult(`<div class="apiresult err">❌ 정산 기록 호출 실패: ${e.message}</div>`);
+  }
+}
+
+// ==================== 파트너 키 로그인 ====================
+// 담당자: 배포 시 이 값만 실제 Apps Script 웹앱 URL로 바꿔주세요. (기존 통합 도구와 같은 스프레드시트/엔드포인트를 씁니다)
+const SETTLEMENT_URL = "https://script.google.com/macros/s/AKfycbw1XsrpJgP4XVGnFGzDK7FxkP8PiTlosT2NvXOgQRwgITmXNGOmDzwOOWu12UBnUSaRiQ/exec";
+
+let currentPartner = null; // {partnerId, partnerName, placePrice, shoppingPrice}
+
+function resetSessionState(){
+  campaigns = [];
+  gridByType = {};
+  currentType = 'NPD0';
+
+  document.getElementById('jsonOut').style.display='none';
+  document.getElementById('jsonActions').style.display='none';
+  document.getElementById('jsonOut').value='';
+  document.getElementById('apiResult').innerHTML='';
+  document.getElementById('settlementResult').innerHTML='아직 기록된 내역이 없습니다.';
+  document.getElementById('gridResult').innerHTML='';
+
+  renderList();
+  setMode('individual');
+  renderAll();
+}
+
+async function tryUnlock(){
+  const key = document.getElementById('lockPw').value.trim();
+  const errEl = document.getElementById('lockErr');
+  if(!key){ errEl.textContent = '키를 입력해주세요.'; return; }
+
+  errEl.textContent = '확인 중...';
+  try{
+    const res = await fetch(`${SETTLEMENT_URL}?action=login&key=${encodeURIComponent(key)}`);
+    const data = await res.json();
+    if(!data.success){
+      errEl.textContent = data.error || '유효하지 않은 키입니다.';
+      return;
+    }
+    currentPartner = data;
+    resetSessionState();
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('appRoot').style.display = 'block';
+    document.getElementById('f_advertiserId').value = data.partnerId;
+  }catch(e){
+    errEl.textContent = '로그인 서버 호출 실패: ' + e.message;
+  }
+}
+document.getElementById('lockBtn').addEventListener('click', tryUnlock);
+document.getElementById('lockPw').addEventListener('keydown', (e)=>{ if(e.key==='Enter') tryUnlock(); });
+
+function logout(){
+  currentPartner = null;
+  resetSessionState();
+  document.getElementById('appRoot').style.display = 'none';
+  document.getElementById('lockScreen').style.display = 'flex';
+  document.getElementById('lockPw').value = '';
+  document.getElementById('lockErr').textContent = '';
+}
+document.getElementById('btnLogoutPartner').addEventListener('click', logout);
+
+// ==================== 초기화 ====================
+renderAll();
+</script>
+</body>
+</html>
