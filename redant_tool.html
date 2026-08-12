@@ -254,10 +254,14 @@
     </div>
 
     <div class="card">
-      <h2>스프레드시트 등록 이력 기록</h2>
+      <h2>등록 이력 기록 (참고용 예상치)</h2>
       <div class="hint" style="margin-bottom:8px;">
         로그인한 파트너 키 기준으로 자동 연동됩니다. <b>'일괄등록' 원본양식 다운로드</b> 또는 <b>API 등록 성공</b> 시,
-        기록할 내용(단가 기준 예상 금액 포함)을 확인 팝업으로 먼저 보여드리고 "예"를 눌러야 실제로 스프레드시트에 기록됩니다.
+        등록 시점의 전체참여한도 기준 <b>예상 금액</b>을 확인 팝업으로 보여드리고 "예"를 눌러야 스프레드시트 등록이력에 기록됩니다.
+      </div>
+      <div class="warn" style="margin-top:0;margin-bottom:10px;">
+        ⚠️ 여기 기록되는 금액은 등록 한도 기준 <b>예상치</b>이며 <b>실제 잔액 차감과는 무관</b>합니다.
+        실제 잔액은 매일 실사용량 기준으로 관리자가 직접 반영하는 장부(충전/일일소진)로만 관리됩니다.
       </div>
       <div id="settlementResult" class="preview">아직 기록된 내역이 없습니다.</div>
     </div>
@@ -1043,18 +1047,18 @@ function updateBalanceDisplay(val){
   el.textContent = (val===null || val===undefined) ? '조회 필요' : fmtWon(val);
 }
 
-// 담당자: Apps Script에 action=getBalance (GET, partnerId 파라미터) 를 추가해서
-// { success:true, balance: 숫자 } 형태로 응답하도록 구현해야 정상 동작합니다.
+// 관리자 페이지와 동일한 백엔드 액션을 사용합니다: action=getPartnerFullStatus
+// 응답 형태: { success:true, status: { balance, remaining, chargeNeeded, consumedAmount, ... } }
 async function refreshBalance(){
   if(!currentPartner) return;
   try{
-    const res = await fetch(`${SETTLEMENT_URL}?action=getBalance&partnerId=${encodeURIComponent(currentPartner.partnerId)}`);
+    const res = await fetch(`${SETTLEMENT_URL}?action=getPartnerFullStatus&partnerId=${encodeURIComponent(currentPartner.partnerId)}`);
     const data = await res.json();
-    if(data.success){
-      currentPartner.balance = data.balance;
-      updateBalanceDisplay(data.balance);
+    if(data.success && data.status){
+      currentPartner.status = data.status;
+      updateBalanceDisplay(data.status.balance);
     }
-    // 실패해도 기존 표시값은 그대로 둠 (백엔드 미구현 상태를 대비)
+    // 실패해도 기존 표시값은 그대로 둠
   }catch(e){
     // 조용히 무시 (기존 표시값 유지)
   }
@@ -1075,7 +1079,7 @@ async function runSettlementFlow(items, source){
   const summary = priced.map(p=>` - ${p.code} (${p.type}): 참여한도 ${p.totalQuota} × 단가 ${fmtWon(p.unitPrice)} = ${fmtWon(p.amount)}`).join('\n');
   const ok = confirm(
     `[${source}] 파트너 ${info.partnerId}${info.partnerName? ' ('+info.partnerName+')':''} 기준\n`+
-    `총 ${priced.length}건, 정산 합계 금액은 ${fmtWon(totalAmount)} 입니다.\n\n${summary}\n\n스프레드시트에 기록하시겠습니까?`
+    `총 ${priced.length}건, 등록 한도 기준 예상 금액은 ${fmtWon(totalAmount)} 입니다. (참고용 · 실제 잔액 차감과 무관)\n\n${summary}\n\n등록이력 시트에 참고용으로 기록하시겠습니까?`
   );
   if(!ok){ renderSettlementResult('정산 기록을 취소했습니다.'); return; }
 
@@ -1094,7 +1098,7 @@ async function runSettlementFlow(items, source){
     const data = await res.json();
     if(data.success){
       renderSettlementResult(
-        `<div class="apiresult ok">✅ [${source}] ${priced.length}건 기록 완료 · 이번 합계 ${fmtWon(data.totalAmount)} · 파트너 누적 ${fmtWon(data.partnerTotal)}</div>`
+        `<div class="apiresult ok">✅ [${source}] ${priced.length}건 기록 완료 · 예상 합계(참고용) ${fmtWon(data.totalAmount)}</div>`
       );
       refreshBalance();
     } else {
@@ -1107,7 +1111,7 @@ async function runSettlementFlow(items, source){
 
 // ==================== 파트너 키 로그인 ====================
 // 담당자: 배포 시 이 값만 실제 Apps Script 웹앱 URL로 바꿔주세요. (기존 통합 도구와 같은 스프레드시트/엔드포인트를 씁니다)
-const SETTLEMENT_URL = "https://script.google.com/macros/s/AKfycbw1XsrpJgP4XVGnFGzDK7FxkP8PiTlosT2NvXOgQRwgITmXNGOmDzwOOWu12UBnUSaRiQ/exec";
+const SETTLEMENT_URL = "https://script.google.com/macros/s/AKfycbw7KOoez7zA1m-HDzKEyFFY9Iic61UJhN8gH787MdYV-8BNRYFZ3VEuxHy6VlWVzVnwPQ/exec";
 
 let currentPartner = null; // {partnerId, partnerName, placePrice, shoppingPrice}
 
@@ -1147,7 +1151,7 @@ async function tryUnlock(){
     document.getElementById('lockScreen').style.display = 'none';
     document.getElementById('appRoot').style.display = 'block';
     document.getElementById('f_advertiserId').value = data.partnerId;
-    if(data.balance !== undefined) updateBalanceDisplay(data.balance);
+    if(data.status && data.status.balance !== undefined) updateBalanceDisplay(data.status.balance);
     refreshBalance();
   }catch(e){
     errEl.textContent = '로그인 서버 호출 실패: ' + e.message;
