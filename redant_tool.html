@@ -109,6 +109,8 @@
     <div style="text-align:right;">
       <div style="font-size:11px;color:#b9c3da;margin-bottom:4px;">현재 잔액</div>
       <div id="balanceDisplay" style="font-size:20px;font-weight:800;color:#fff;">-</div>
+      <div style="font-size:11px;color:#b9c3da;margin-top:8px;">소진금액</div>
+      <div id="consumedDisplay" style="font-size:14px;font-weight:700;color:#dfe6f5;">-</div>
       <button class="btn btn-outline" id="btnLogoutPartner" style="background:#fff;margin-top:8px;">로그아웃</button>
     </div>
   </div>
@@ -1042,9 +1044,11 @@ function renderSettlementResult(html){
   document.getElementById('settlementResult').innerHTML = html;
 }
 
-function updateBalanceDisplay(val){
-  const el = document.getElementById('balanceDisplay');
-  el.textContent = (val===null || val===undefined) ? '조회 필요' : fmtWon(val);
+function updateBalanceDisplay(balance, consumedAmount){
+  const balEl = document.getElementById('balanceDisplay');
+  balEl.textContent = (balance===null || balance===undefined) ? '조회 필요' : fmtWon(balance);
+  const consEl = document.getElementById('consumedDisplay');
+  consEl.textContent = (consumedAmount===null || consumedAmount===undefined) ? '조회 필요' : fmtWon(consumedAmount);
 }
 
 // 관리자 페이지와 동일한 백엔드 액션을 사용합니다: action=getPartnerFullStatus
@@ -1056,7 +1060,7 @@ async function refreshBalance(){
     const data = await res.json();
     if(data.success && data.status){
       currentPartner.status = data.status;
-      updateBalanceDisplay(data.status.balance);
+      updateBalanceDisplay(data.status.balance, data.status.consumedAmount);
     }
     // 실패해도 기존 표시값은 그대로 둠
   }catch(e){
@@ -1126,7 +1130,7 @@ function resetSessionState(){
   document.getElementById('apiResult').innerHTML='';
   document.getElementById('settlementResult').innerHTML='아직 기록된 내역이 없습니다.';
   document.getElementById('gridResult').innerHTML='';
-  updateBalanceDisplay(null);
+  updateBalanceDisplay(null, null);
 
   renderList();
   setMode('individual');
@@ -1151,7 +1155,7 @@ async function tryUnlock(){
     document.getElementById('lockScreen').style.display = 'none';
     document.getElementById('appRoot').style.display = 'block';
     document.getElementById('f_advertiserId').value = data.partnerId;
-    if(data.status && data.status.balance !== undefined) updateBalanceDisplay(data.status.balance);
+    if(data.status && data.status.balance !== undefined) updateBalanceDisplay(data.status.balance, data.status.consumedAmount);
     refreshBalance();
   }catch(e){
     errEl.textContent = '로그인 서버 호출 실패: ' + e.message;
