@@ -808,10 +808,13 @@ function buildLegacyRows(typeKey){
   const cols = getColumnOrder(typeKey);
   const rows=[]; const errors=[]; const settlementItems=[]; let seq=1;
 
+  // Date 객체로 변환하면 부동소수점/타임존 오차로 셀 클릭 시 시간이 붙어 보이는 문제가 생겨서,
+  // 순수 텍스트(yyyy-mm-dd)로만 넣습니다. 혹시 시간까지 같이 입력된 값이 와도 날짜 부분만 사용합니다.
   function toDate(s){
     if(!s) return '';
-    const d = new Date(String(s).trim().replace(' ', 'T'));
-    return isNaN(d.getTime()) ? s : d;
+    const trimmed = String(s).trim();
+    const m = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
+    return m ? m[1] : trimmed;
   }
   function toNum(s){
     if(s===undefined||s===null||String(s).trim()==='') return '';
@@ -861,20 +864,12 @@ document.getElementById('btnDownloadLegacyXlsx').addEventListener('click', async
     return;
   }
   const blankRow = Array(header.length).fill('');
-  const receivedRow = ['접수날짜', new Date()].concat(Array(header.length-2).fill(''));
+  // new Date() 객체를 그대로 넣으면 여기도 부동소수점/타임존 오차로 셀 클릭 시 이상한 시간이 보일 수 있어
+  // 접수날짜도 순수 텍스트로 고정 표기합니다.
+  const receivedRow = ['접수날짜', new Date().toISOString().slice(0,16).replace('T',' ')].concat(Array(header.length-2).fill(''));
   const aoa = [blankRow, receivedRow, blankRow, header].concat(rows);
-  const ws = XLSX.utils.aoa_to_sheet(aoa, {cellDates:true});
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = header.map((h,i)=> i===3? {wch:26} : (i===11||i===12? {wch:26} : (i===17? {wch:60} : {wch:14})));
-
-  // 시작일시(E열, idx 4) / 종료일시(F열, idx 5) 셀에 날짜 전용 서식을 지정해서
-  // 엑셀에서 시간(00:00:00 등)이 같이 표시되지 않고 날짜만 보이도록 처리
-  const DATA_START_ROW = 4; // 0-based: blank, 접수날짜, blank, header 다음 행부터 데이터
-  rows.forEach((_, i)=>{
-    [4,5].forEach(c=>{
-      const ref = XLSX.utils.encode_cell({ r: DATA_START_ROW + i, c });
-      if(ws[ref] && ws[ref].t === 'd') ws[ref].z = 'yyyy-mm-dd';
-    });
-  });
 
   if(currentType==='NPM0'){
     // M~Q(13~17번째, 0-based 12~16) 열을 헤더행 + 각 데이터행에서 병합
