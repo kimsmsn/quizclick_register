@@ -866,6 +866,16 @@ document.getElementById('btnDownloadLegacyXlsx').addEventListener('click', async
   const ws = XLSX.utils.aoa_to_sheet(aoa, {cellDates:true});
   ws['!cols'] = header.map((h,i)=> i===3? {wch:26} : (i===11||i===12? {wch:26} : (i===17? {wch:60} : {wch:14})));
 
+  // 시작일시(E열, idx 4) / 종료일시(F열, idx 5) 셀에 날짜 전용 서식을 지정해서
+  // 엑셀에서 시간(00:00:00 등)이 같이 표시되지 않고 날짜만 보이도록 처리
+  const DATA_START_ROW = 4; // 0-based: blank, 접수날짜, blank, header 다음 행부터 데이터
+  rows.forEach((_, i)=>{
+    [4,5].forEach(c=>{
+      const ref = XLSX.utils.encode_cell({ r: DATA_START_ROW + i, c });
+      if(ws[ref] && ws[ref].t === 'd') ws[ref].z = 'yyyy-mm-dd';
+    });
+  });
+
   if(currentType==='NPM0'){
     // M~Q(13~17번째, 0-based 12~16) 열을 헤더행 + 각 데이터행에서 병합
     const HEADER_ROW_IDX = 3; // 0-based: blank,접수날짜,blank,header
